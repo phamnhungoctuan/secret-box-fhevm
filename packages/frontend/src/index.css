@@ -1,0 +1,180 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 230 25% 5%;
+    --foreground: 210 40% 98%;
+
+    --card: 230 25% 8%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 230 25% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 280 100% 65%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 190 100% 50%;
+    --secondary-foreground: 230 25% 5%;
+
+    --muted: 230 20% 15%;
+    --muted-foreground: 215 20% 55%;
+
+    --accent: 280 100% 65%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 230 20% 18%;
+    --input: 230 20% 15%;
+    --ring: 280 100% 65%;
+
+    --radius: 0.75rem;
+
+    /* Custom game colors */
+    --neon-purple: 280 100% 65%;
+    --neon-cyan: 190 100% 50%;
+    --neon-pink: 330 100% 65%;
+    --neon-gold: 45 100% 60%;
+    --dark-surface: 230 25% 10%;
+    --glow-purple: 280 100% 70%;
+    --glow-cyan: 190 100% 60%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(280 100% 65%) 0%, hsl(330 100% 65%) 50%, hsl(280 100% 65%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(190 100% 50%) 0%, hsl(220 100% 60%) 100%);
+    --gradient-box: linear-gradient(180deg, hsl(230 25% 12%) 0%, hsl(230 25% 6%) 100%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(280 100% 65% / 0.3) 0%, transparent 70%);
+
+    /* Shadows */
+    --shadow-neon: 0 0 20px hsl(280 100% 65% / 0.5), 0 0 40px hsl(280 100% 65% / 0.3);
+    --shadow-cyan: 0 0 20px hsl(190 100% 50% / 0.5), 0 0 40px hsl(190 100% 50% / 0.3);
+    --shadow-gold: 0 0 30px hsl(45 100% 60% / 0.6), 0 0 60px hsl(45 100% 60% / 0.3);
+    --shadow-card: 0 4px 30px hsl(0 0% 0% / 0.5);
+
+    --sidebar-background: 230 25% 8%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 280 100% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 230 20% 15%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 230 20% 18%;
+    --sidebar-ring: 280 100% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Orbitron', sans-serif;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Orbitron', sans-serif;
+  }
+
+  .text-glow-purple {
+    text-shadow: 0 0 10px hsl(var(--neon-purple) / 0.8), 0 0 30px hsl(var(--neon-purple) / 0.5);
+  }
+
+  .text-glow-cyan {
+    text-shadow: 0 0 10px hsl(var(--neon-cyan) / 0.8), 0 0 30px hsl(var(--neon-cyan) / 0.5);
+  }
+
+  .text-glow-gold {
+    text-shadow: 0 0 10px hsl(var(--neon-gold) / 0.8), 0 0 30px hsl(var(--neon-gold) / 0.5);
+  }
+
+  .box-glow-purple {
+    box-shadow: var(--shadow-neon);
+  }
+
+  .box-glow-cyan {
+    box-shadow: var(--shadow-cyan);
+  }
+
+  .box-glow-gold {
+    box-shadow: var(--shadow-gold);
+  }
+
+  .gradient-border {
+    position: relative;
+    background: linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box,
+                var(--gradient-primary) border-box;
+    border: 2px solid transparent;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+    background-size: 200% 100%;
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(var(--neon-purple) / 0.4), 0 0 40px hsl(var(--neon-purple) / 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px hsl(var(--neon-purple) / 0.6), 0 0 60px hsl(var(--neon-purple) / 0.4);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
