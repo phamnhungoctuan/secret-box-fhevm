@@ -42,21 +42,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IInputVerifier__factory>;
     getContractFactory(
-      name: "FHECounter",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.FHECounter__factory>;
-    getContractFactory(
-      name: "ReviewCardsFHE",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ReviewCardsFHE__factory>;
-    getContractFactory(
       name: "SecretBox",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.SecretBox__factory>;
-    getContractFactory(
-      name: "SimpleVoting_uint32",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.SimpleVoting_uint32__factory>;
 
     getContractAt(
       name: "ZamaConfig",
@@ -94,25 +82,10 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IInputVerifier>;
     getContractAt(
-      name: "FHECounter",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.FHECounter>;
-    getContractAt(
-      name: "ReviewCardsFHE",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ReviewCardsFHE>;
-    getContractAt(
       name: "SecretBox",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.SecretBox>;
-    getContractAt(
-      name: "SimpleVoting_uint32",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.SimpleVoting_uint32>;
 
     deployContract(
       name: "ZamaConfig",
@@ -143,21 +116,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IInputVerifier>;
     deployContract(
-      name: "FHECounter",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.FHECounter>;
-    deployContract(
-      name: "ReviewCardsFHE",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ReviewCardsFHE>;
-    deployContract(
       name: "SecretBox",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SecretBox>;
-    deployContract(
-      name: "SimpleVoting_uint32",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.SimpleVoting_uint32>;
 
     deployContract(
       name: "ZamaConfig",
@@ -195,25 +156,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IInputVerifier>;
     deployContract(
-      name: "FHECounter",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.FHECounter>;
-    deployContract(
-      name: "ReviewCardsFHE",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ReviewCardsFHE>;
-    deployContract(
       name: "SecretBox",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SecretBox>;
-    deployContract(
-      name: "SimpleVoting_uint32",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.SimpleVoting_uint32>;
 
     // default types
     getContractFactory(

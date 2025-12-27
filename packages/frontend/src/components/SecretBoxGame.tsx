@@ -37,7 +37,7 @@ export function SecretBoxGame() {
     totalReward,
     numberOfBoxes,
     loadNumberOfBoxes,
-  } = useSecretBox();
+  } = useSecretBox(address);
 
   const { toast } = useToast();
 

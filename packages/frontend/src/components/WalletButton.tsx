@@ -8,9 +8,9 @@ interface WalletButtonProps {
   address: string | null;
   chainId: number | null;
   error: string | null;
-  onConnect: () => void;
-  onDisconnect: () => void;
-  onSwitchNetwork: () => void;
+  onConnect: () => void | Promise<void>;
+  onDisconnect: () => void | Promise<void>;
+  onSwitchNetwork: () => void | Promise<void>;
 }
 
 const SEPOLIA_CHAIN_ID = 11155111;
@@ -25,7 +25,8 @@ export function WalletButton({
   onDisconnect,
   onSwitchNetwork,
 }: WalletButtonProps) {
-  const isWrongNetwork = isConnected && chainId !== SEPOLIA_CHAIN_ID;
+  const isWrongNetwork =
+    isConnected && chainId !== null && chainId !== SEPOLIA_CHAIN_ID;
   
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;

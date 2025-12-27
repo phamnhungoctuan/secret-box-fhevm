@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { BrowserProvider, Signer } from 'ethers';
 import {
   initFHEVM,
@@ -11,6 +11,39 @@ import {
 } from '@/lib/fhevm';
 
 const MAX_BOX_OPENS = 3;
+const STORAGE_KEY_PREFIX = 'secretbox-boxes-opened';
+const TOTAL_REWARD_KEY_PREFIX = 'secretbox-total-reward';
+
+const getStorageKey = (address: string) =>
+  `${STORAGE_KEY_PREFIX}-${address.toLowerCase()}`;
+
+const getTotalRewardKey = (address: string) =>
+  `${TOTAL_REWARD_KEY_PREFIX}-${address.toLowerCase()}`;
+
+const getStoredOpens = (address?: string | null): number => {
+  if (typeof window === 'undefined' || !address) return 0;
+  try {
+    const raw = window.localStorage.getItem(getStorageKey(address));
+    const parsed = Number.parseInt(raw ?? '0', 10);
+    if (!Number.isFinite(parsed) || parsed < 0) return 0;
+    return Math.min(parsed, MAX_BOX_OPENS);
+  } catch {
+    return 0;
+  }
+};
+
+const getStoredTotalReward = (address?: string | null): bigint => {
+  if (typeof window === 'undefined' || !address) return 0n;
+  try {
+    const raw = window.localStorage.getItem(getTotalRewardKey(address));
+    if (!raw) return 0n;
+    const parsed = BigInt(raw);
+    if (parsed < 0) return 0n;
+    return parsed;
+  } catch {
+    return 0n;
+  }
+};
 
 export type GameState =
   | 'idle'
@@ -41,7 +74,7 @@ interface UseSecretBoxReturn {
   loadNumberOfBoxes: (provider: BrowserProvider) => Promise<void>;
 }
 
-export function useSecretBox(): UseSecretBoxReturn {
+export function useSecretBox(connectedAddress?: string | null): UseSecretBoxReturn {
   const [gameState, setGameState] = useState<GameState>('idle');
   const [selectedBox, setSelectedBox] = useState<number | null>(null);
   const [reward, setReward] = useState<bigint | null>(null);
@@ -49,9 +82,48 @@ export function useSecretBox(): UseSecretBoxReturn {
   const [error, setError] = useState<string | null>(null);
   const [fhevmInstance, setFhevmInstance] =
     useState<FHEVMInstance | null>(null);
-  const [boxesOpened, setBoxesOpened] = useState(0);
-  const [totalReward, setTotalReward] = useState<bigint>(0n);
+  const [boxesOpened, setBoxesOpened] = useState(() =>
+    getStoredOpens(connectedAddress)
+  );
+  const [totalReward, setTotalReward] = useState<bigint>(() =>
+    getStoredTotalReward(connectedAddress)
+  );
   const [numberOfBoxes, setNumberOfBoxes] = useState<number>(0);
+
+  useEffect(() => {
+    if (!connectedAddress) {
+      setBoxesOpened(0);
+      setTotalReward(0n);
+      return;
+    }
+
+    setBoxesOpened(getStoredOpens(connectedAddress));
+    setTotalReward(getStoredTotalReward(connectedAddress));
+  }, [connectedAddress]);
+
+  useEffect(() => {
+    if (!connectedAddress) return;
+    try {
+      window.localStorage.setItem(
+        getStorageKey(connectedAddress),
+        boxesOpened.toString()
+      );
+    } catch (err) {
+      console.error('Failed to persist opened boxes count', err);
+    }
+  }, [boxesOpened, connectedAddress]);
+
+  useEffect(() => {
+    if (!connectedAddress) return;
+    try {
+      window.localStorage.setItem(
+        getTotalRewardKey(connectedAddress),
+        totalReward.toString()
+      );
+    } catch (err) {
+      console.error('Failed to persist total reward', err);
+    }
+  }, [totalReward, connectedAddress]);
 
   const loadNumberOfBoxes = useCallback(
     async (provider: BrowserProvider) => {
@@ -79,6 +151,12 @@ export function useSecretBox(): UseSecretBoxReturn {
     ) => {
       try {
         setError(null);
+
+        if (boxesOpened >= MAX_BOX_OPENS) {
+          setGameState('error');
+          setError('Open limit reached');
+          return;
+        }
 
         if (numberOfBoxes === 0) {
           await loadNumberOfBoxes(provider);
@@ -156,7 +234,7 @@ export function useSecretBox(): UseSecretBoxReturn {
         setGameState('error');
       }
     },
-    [fhevmInstance, numberOfBoxes, loadNumberOfBoxes]
+    [fhevmInstance, numberOfBoxes, loadNumberOfBoxes, boxesOpened]
   );
 
   const reset = useCallback(() => {

@@ -1,16 +1,11 @@
-import { useState, useCallback, useEffect } from 'react';
-import { BrowserProvider, Signer } from 'ethers';
-
-declare global {
-  interface Window {
-    ethereum?: {
-      isMetaMask?: boolean;
-      request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
-      on: (event: string, callback: (...args: unknown[]) => void) => void;
-      removeListener: (event: string, callback: (...args: unknown[]) => void) => void;
-    };
-  }
-}
+import { useCallback, useEffect, useState } from "react";
+import { BrowserProvider, Signer } from "ethers";
+import {
+  useAppKit,
+  useAppKitAccount,
+  useAppKitProvider,
+  useDisconnect,
+} from "@reown/appkit/react";
 
 interface WalletState {
   isConnected: boolean;
@@ -24,14 +19,19 @@ interface WalletState {
 
 interface UseWalletReturn extends WalletState {
   connect: () => Promise<void>;
-  disconnect: () => void;
+  disconnect: () => Promise<void>;
   switchToSepolia: () => Promise<void>;
 }
 
 const SEPOLIA_CHAIN_ID = 11155111;
-const SEPOLIA_CHAIN_ID_HEX = '0xaa36a7';
+const SEPOLIA_CHAIN_ID_HEX = "0xaa36a7";
 
 export function useWallet(): UseWalletReturn {
+  const { address, isConnected } = useAppKitAccount();
+  const { walletProvider } = useAppKitProvider("eip155");
+  const { open } = useAppKit();
+  const { disconnect: appKitDisconnect } = useDisconnect();
+
   const [state, setState] = useState<WalletState>({
     isConnected: false,
     isConnecting: false,
@@ -42,195 +42,176 @@ export function useWallet(): UseWalletReturn {
     error: null,
   });
 
-  const getInjectedEthereum = useCallback(() => {
-    if (typeof window === 'undefined') return null;
-    const eth = window.ethereum as any;
-    if (!eth) return null;
-    if (Array.isArray(eth.providers) && eth.providers.length > 0) {
-      const metamaskProvider = eth.providers.find((p: any) => p?.isMetaMask);
-      return metamaskProvider || eth.providers[0];
-    }
-    return eth;
-  }, []);
-
-  const isMetaMaskInstalled = useCallback(() => {
-    return !!getInjectedEthereum();
-  }, [getInjectedEthereum]);
-
-  const handleAccountsChanged = useCallback(async (accounts: unknown) => {
-    const accountList = accounts as string[];
-    if (accountList.length === 0) {
-      setState(prev => ({
-        ...prev,
-        isConnected: false,
-        address: null,
-        signer: null,
-        error: null,
-      }));
-    } else if (accountList[0] !== state.address) {
-      const provider = new BrowserProvider(getInjectedEthereum()!);
-      const signer = await provider.getSigner();
-      setState(prev => ({
-        ...prev,
-        address: accountList[0],
-        provider,
-        signer,
-      }));
-    }
-  }, [state.address]);
-
-  const handleChainChanged = useCallback((chainId: unknown) => {
-    const newChainId = parseInt(chainId as string, 16);
-    setState(prev => ({
-      ...prev,
-      chainId: newChainId,
-    }));
-
-    window.location.reload();
-  }, []);
-
   useEffect(() => {
-    const eth = getInjectedEthereum();
-    if (!eth) return;
+    let cancelled = false;
 
-    eth.on('accountsChanged', handleAccountsChanged);
-    eth.on('chainChanged', handleChainChanged);
-
-    return () => {
-      eth?.removeListener?.('accountsChanged', handleAccountsChanged);
-      eth?.removeListener?.('chainChanged', handleChainChanged);
-    };
-  }, [getInjectedEthereum, handleAccountsChanged, handleChainChanged]);
-
-  useEffect(() => {
-    const checkConnection = async () => {
-      const eth = getInjectedEthereum();
-      if (!eth) return;
+    const syncWallet = async () => {
+      if (!walletProvider || !isConnected || !address) {
+        if (cancelled) return;
+        setState((prev) => ({
+          ...prev,
+          isConnected: false,
+          isConnecting: false,
+          address: null,
+          chainId: null,
+          provider: null,
+          signer: null,
+        }));
+        return;
+      }
 
       try {
-        const accounts = await eth.request({ method: 'eth_accounts' }) as string[];
-        if (accounts.length > 0) {
-          const provider = new BrowserProvider(eth);
-          const signer = await provider.getSigner();
-          const network = await provider.getNetwork();
-          
-          setState({
-            isConnected: true,
-            isConnecting: false,
-            address: accounts[0],
-            chainId: Number(network.chainId),
-            provider,
-            signer,
-            error: null,
-          });
-        }
+        const provider = new BrowserProvider(walletProvider as any);
+        const [signer, network] = await Promise.all([
+          provider.getSigner(),
+          provider.getNetwork(),
+        ]);
+
+        if (cancelled) return;
+
+        setState((prev) => ({
+          ...prev,
+          isConnected: true,
+          isConnecting: false,
+          address,
+          chainId: Number(network.chainId),
+          provider,
+          signer,
+          error: null,
+        }));
       } catch (error) {
-        console.error('Error checking wallet connection:', error);
+        if (cancelled) return;
+        console.error("Error syncing wallet state:", error);
+        setState((prev) => ({
+          ...prev,
+          isConnected: false,
+          isConnecting: false,
+          chainId: null,
+          provider: null,
+          signer: null,
+          error: "Unable to access wallet provider",
+        }));
       }
     };
 
-    checkConnection();
-  }, [getInjectedEthereum, isMetaMaskInstalled]);
+    void syncWallet();
 
-  const connect = useCallback(async () => {
-    if (!isMetaMaskInstalled()) {
-      setState(prev => ({
-        ...prev,
-        error: 'MetaMask is not installed. Please install MetaMask to continue.',
-      }));
-      window.open('https://metamask.io/download/', '_blank');
+    return () => {
+      cancelled = true;
+    };
+  }, [walletProvider, isConnected, address]);
+
+  useEffect(() => {
+    if (!walletProvider || typeof (walletProvider as any).on !== "function") {
       return;
     }
 
-    setState(prev => ({ ...prev, isConnecting: true, error: null }));
+    const handleChainChanged = (newChainId: unknown) => {
+      const parsed =
+        typeof newChainId === "string"
+          ? parseInt(newChainId, 16)
+          : Number(newChainId);
+
+      if (Number.isNaN(parsed)) return;
+
+      setState((prev) => ({
+        ...prev,
+        chainId: parsed,
+      }));
+    };
+
+    (walletProvider as any).on("chainChanged", handleChainChanged);
+
+    return () => {
+      (walletProvider as any).removeListener?.(
+        "chainChanged",
+        handleChainChanged
+      );
+    };
+  }, [walletProvider]);
+
+  const connect = useCallback(async () => {
+    setState((prev) => ({ ...prev, isConnecting: true, error: null }));
 
     try {
-      const eth = getInjectedEthereum();
-      if (!eth) throw new Error('Ethereum provider not found');
-
-      const accounts = await eth.request({
-        method: 'eth_requestAccounts',
-      }) as string[];
-
-      if (accounts.length === 0) {
-        throw new Error('No accounts returned');
-      }
-
-      const provider = new BrowserProvider(eth);
-      const signer = await provider.getSigner();
-      const network = await provider.getNetwork();
-
-      setState({
-        isConnected: true,
-        isConnecting: false,
-        address: accounts[0],
-        chainId: Number(network.chainId),
-        provider,
-        signer,
-        error: null,
-      });
+      await open();
     } catch (error) {
-      const err = error as Error & { code?: number };
-      let errorMessage = 'Failed to connect wallet';
-      
-      if (err.code === 4001) {
-        errorMessage = 'Connection request rejected. Please try again.';
-      }
-      
-      setState(prev => ({
+      console.error("Failed to connect wallet:", error);
+      setState((prev) => ({
         ...prev,
         isConnecting: false,
-        error: errorMessage,
+        error: "Failed to connect wallet",
       }));
+    } finally {
+      setState((prev) => ({ ...prev, isConnecting: false }));
     }
-  }, [isMetaMaskInstalled]);
+  }, [open]);
 
-  const disconnect = useCallback(() => {
-    setState({
-      isConnected: false,
-      isConnecting: false,
-      address: null,
-      chainId: null,
-      provider: null,
-      signer: null,
-      error: null,
-    });
-  }, []);
+  const disconnect = useCallback(async () => {
+    try {
+      await appKitDisconnect();
+    } catch (error) {
+      console.error("Failed to disconnect wallet:", error);
+    } finally {
+      setState({
+        isConnected: false,
+        isConnecting: false,
+        address: null,
+        chainId: null,
+        provider: null,
+        signer: null,
+        error: null,
+      });
+    }
+  }, [appKitDisconnect]);
 
   const switchToSepolia = useCallback(async () => {
-    const eth = getInjectedEthereum();
-    if (!eth) return;
+    if (!walletProvider) return;
 
     try {
-      await eth.request({
-        method: 'wallet_switchEthereumChain',
+      await (walletProvider as any).request({
+        method: "wallet_switchEthereumChain",
         params: [{ chainId: SEPOLIA_CHAIN_ID_HEX }],
       });
     } catch (error) {
       const err = error as Error & { code?: number };
-      
+
       if (err.code === 4902) {
         try {
-          await eth.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: SEPOLIA_CHAIN_ID_HEX,
-              chainName: 'Sepolia Testnet',
-              nativeCurrency: {
-                name: 'Sepolia ETH',
-                symbol: 'ETH',
-                decimals: 18,
+          await (walletProvider as any).request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: SEPOLIA_CHAIN_ID_HEX,
+                chainName: "Sepolia Testnet",
+                nativeCurrency: {
+                  name: "Sepolia ETH",
+                  symbol: "ETH",
+                  decimals: 18,
+                },
+                rpcUrls: [
+                  "https://ethereum-sepolia.blockpi.network/v1/rpc/public",
+                ],
+                blockExplorerUrls: ["https://sepolia.etherscan.io/"],
               },
-              rpcUrls: ['https://sepolia.infura.io/v3/'],
-              blockExplorerUrls: ['https://sepolia.etherscan.io/'],
-            }],
+            ],
           });
         } catch (addError) {
-          console.error('Failed to add Sepolia network:', addError);
+          console.error("Failed to add Sepolia network:", addError);
+          setState((prev) => ({
+            ...prev,
+            error: "Failed to add Sepolia network",
+          }));
         }
+      } else {
+        console.error("Failed to switch network:", error);
+        setState((prev) => ({
+          ...prev,
+          error: "Failed to switch network",
+        }));
       }
     }
-  }, []);
+  }, [walletProvider]);
 
   return {
     ...state,
