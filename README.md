@@ -127,3 +127,5 @@ pnpm deploy:sepolia
 - Build SDK: `pnpm --filter ./packages/fhevm-sdk build`
 - Check/compile contracts: `pnpm --filter ./packages/hardhat compile`
 - Build frontend: `pnpm --filter ./packages/frontend build`
+- Run deploy contract on Sepolia:  `pnpm --filter ./packages/hardhat deploy:sepolia`
+- Run unittest:  `pnpm --filter ./packages/hardhat test`
